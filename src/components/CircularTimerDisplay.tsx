@@ -4,10 +4,10 @@ import { useTimer } from '@/hooks/useTimer';
 import { formatTime } from '@/utils';
 
 export function CircularTimerDisplay() {
-  const { currentTime, state, progress } = useTimer();
+  const { currentTime, state, progress, settings } = useTimer();
 
-  // Check if we're in the 30-second burn zone
-  const isBurnZone = state === 'active' && currentTime <= 30 && currentTime > 0;
+  // Check if we're in the 30-second burn zone AND the setting is enabled
+  const isBurnZone = state === 'active' && currentTime <= 30 && currentTime > 0 && settings.thirtySecondAlert;
 
   const getDisplayColor = () => {
     if (isBurnZone) return 'text-red-400'; // Burn zone gets red color
@@ -62,8 +62,8 @@ export function CircularTimerDisplay() {
       {/* Burn Zone Fire Effect Background */}
       {isBurnZone && (
         <>
-          <div className="absolute inset-0 rounded-full bg-gradient-radial from-red-500/30 via-orange-500/40 to-yellow-500/20 animate-fire-flicker scale-110" />
-          <div className="absolute inset-0 rounded-full bg-gradient-radial from-orange-600/20 via-red-600/30 to-transparent animate-pulse scale-125" />
+          <div className="absolute inset-0 rounded-full bg-gradient-radial from-red-500/30 via-orange-500/40 to-yellow-500/20 animate-fire-flicker scale-110 pointer-events-none" />
+          <div className="absolute inset-0 rounded-full bg-gradient-radial from-orange-600/20 via-red-600/30 to-transparent animate-pulse scale-125 pointer-events-none" />
         </>
       )}
       
@@ -94,7 +94,10 @@ export function CircularTimerDisplay() {
           strokeLinecap="butt"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-1000 ease-out"
+          className="transition-all duration-500 ease-out"
+          style={{
+            transitionProperty: 'stroke-dashoffset, stroke'
+          }}
         />
         
         {/* Animated pulse ring when near completion - disabled during burn zone to avoid conflicts */}
@@ -157,9 +160,9 @@ export function CircularTimerDisplay() {
           </svg>
           
           {/* Fire Particle Effects */}
-          <div className="absolute top-0 left-1/2 w-2 h-2 bg-red-500 rounded-full animate-bounce transform -translate-x-1/2 -translate-y-2" />
-          <div className="absolute top-2 right-4 w-1 h-1 bg-orange-500 rounded-full animate-ping" />
-          <div className="absolute top-2 left-4 w-1 h-1 bg-yellow-500 rounded-full animate-pulse" />
+          <div className="absolute top-0 left-1/2 w-2 h-2 bg-red-500 rounded-full animate-bounce transform -translate-x-1/2 -translate-y-2 pointer-events-none" />
+          <div className="absolute top-2 right-4 w-1 h-1 bg-orange-500 rounded-full animate-ping pointer-events-none" />
+          <div className="absolute top-2 left-4 w-1 h-1 bg-yellow-500 rounded-full animate-pulse pointer-events-none" />
         </>
       )}
       
