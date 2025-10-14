@@ -24,3 +24,60 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Burn Zone Animations */
+@keyframes screenShake {
+  0% { transform: translateX(0) translateY(0); }
+  10% { transform: translateX(-2px) translateY(-1px); }
+  20% { transform: translateX(2px) translateY(1px); }
+  30% { transform: translateX(-1px) translateY(2px); }
+  40% { transform: translateX(1px) translateY(-2px); }
+  50% { transform: translateX(-2px) translateY(1px); }
+  60% { transform: translateX(2px) translateY(-1px); }
+  70% { transform: translateX(-1px) translateY(-2px); }
+  80% { transform: translateX(1px) translateY(2px); }
+  90% { transform: translateX(-2px) translateY(-1px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+@keyframes intensePulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 0.8;
+  }
+}
+
+@keyframes fireFlicker {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1) rotate(0deg);
+  }
+  25% { 
+    opacity: 0.8; 
+    transform: scale(0.95) rotate(-2deg);
+  }
+  50% { 
+    opacity: 0.9; 
+    transform: scale(1.05) rotate(1deg);
+  }
+  75% { 
+    opacity: 0.7; 
+    transform: scale(0.98) rotate(-1deg);
+  }
+}
+
+.animate-screen-shake {
+  animation: screenShake 0.3s ease-in-out infinite;
+}
+
+.animate-intense-pulse {
+  animation: intensePulse 0.8s ease-in-out infinite;
+}
+
+.animate-fire-flicker {
+  animation: fireFlicker 0.5s ease-in-out infinite;
+}

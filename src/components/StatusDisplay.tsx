@@ -3,9 +3,14 @@
 import { useTimer } from '@/hooks/useTimer';
 
 export function StatusDisplay() {
-  const { state, currentCycle, totalCycles } = useTimer();
+  const { state, currentCycle, totalCycles, currentTime, settings } = useTimer();
+  
+  // Check if we're in the 30-second burn zone
+  const isBurnZone = state === 'active' && currentTime <= 30 && currentTime > 0 && settings.thirtySecondAlert;
 
   const getStatusText = () => {
+    if (isBurnZone) return '🔥 BURN TIME! PUSH HARDER! 🔥';
+    
     switch (state) {
       case 'idle': return 'Ready to Start';
       case 'prepare': return `Prepare for Round ${currentCycle + 1}!`;
@@ -25,6 +30,8 @@ export function StatusDisplay() {
   };
 
   const getStatusColor = () => {
+    if (isBurnZone) return 'text-red-400 animate-pulse';
+    
     switch (state) {
       case 'active': return 'text-green-400';
       case 'rest': return 'text-orange-400';
@@ -36,6 +43,8 @@ export function StatusDisplay() {
   };
 
   const getStatusBg = () => {
+    if (isBurnZone) return 'bg-red-900/50 border-red-400/80 animate-pulse';
+    
     switch (state) {
       case 'active': return 'bg-green-900/30 border-green-500/50';
       case 'rest': return 'bg-orange-900/30 border-orange-500/50';

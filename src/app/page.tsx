@@ -6,18 +6,19 @@ import { StatusDisplay } from '@/components/StatusDisplay';
 import { TimerControls } from '@/components/TimerControls';
 import { WorkoutSettings } from '@/components/WorkoutSettings';
 import { ClientOnly } from '@/components/ClientOnly';
+import { BurnZoneWrapper } from '@/components/BurnZoneWrapper';
 
 export default function Home() {
   return (
     <ClientOnly 
       fallback={
         <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <div className="text-2xl">Loading HIIT Timer...</div>
+          <div className="text-2xl">Loading WarriorTimer...</div>
         </div>
       }
     >
       <TimerProvider>
-        <div className="min-h-screen bg-black text-white relative">
+        <BurnZoneWrapper>
           
           {/* Floating Settings Button - Top Left */}
           <div className="absolute top-6 left-6 z-10">
@@ -44,7 +45,7 @@ export default function Home() {
             
           </div>
           
-        </div>
+        </BurnZoneWrapper>
       </TimerProvider>
     </ClientOnly>
   );
