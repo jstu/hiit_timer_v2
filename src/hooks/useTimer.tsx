@@ -34,10 +34,10 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   // Seeded random number generator for consistent jump patterns
-  const seededRandom = (seed: number) => {
-    let x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-  };
+  // const seededRandom = (seed: number) => {
+  //   const x = Math.sin(seed) * 10000;
+  //   return x - Math.floor(x);
+  // };
 
   // Generate deterministic jump times for a round
   const generateJumpTimes = (roundNumber: number, activeTime: number, intensity: 'low' | 'medium' | 'high', burnAlert: boolean): number[] => {
@@ -111,7 +111,6 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioManagerRef = useRef<AudioManager | null>(null);
-  const jumpCooldownRef = useRef(0);
   const startTimeRef = useRef<number>(0);
   const stateRef = useRef<TimerState>('idle');
   const jumpTimesRef = useRef<Map<number, number[]>>(new Map());
