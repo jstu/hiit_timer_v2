@@ -1,48 +1,51 @@
 'use client';
 
 import { TimerProvider } from '@/hooks/useTimer';
-import { TimerDisplay } from '@/components/TimerDisplay';
+import { CircularTimerDisplay } from '@/components/CircularTimerDisplay';
 import { StatusDisplay } from '@/components/StatusDisplay';
 import { TimerControls } from '@/components/TimerControls';
-import { ProgressBar } from '@/components/ProgressBar';
 import { WorkoutSettings } from '@/components/WorkoutSettings';
+import { ClientOnly } from '@/components/ClientOnly';
 
 export default function Home() {
   return (
-    <TimerProvider>
-      <div className="min-h-screen bg-black text-white relative">
-        
-        {/* Floating Settings Button - Top Left */}
-        <div className="absolute top-6 left-6 z-10">
-          <WorkoutSettings />
+    <ClientOnly 
+      fallback={
+        <div className="min-h-screen bg-black text-white flex items-center justify-center">
+          <div className="text-2xl">Loading HIIT Timer...</div>
         </div>
-        
-        {/* Main Centered Layout */}
-        <div className="h-screen flex flex-col items-center justify-center p-8 space-y-8">
+      }
+    >
+      <TimerProvider>
+        <div className="min-h-screen bg-black text-white relative">
           
-          {/* Status and Round Info */}
-          <div className="flex-shrink-0">
-            <StatusDisplay />
+          {/* Floating Settings Button - Top Left */}
+          <div className="absolute top-6 left-6 z-10">
+            <WorkoutSettings />
           </div>
           
-          {/* Progress Bar - Right under status */}
-          <div className="flex-shrink-0 w-full max-w-4xl">
-            <ProgressBar />
-          </div>
-          
-          {/* Timer Display - Main Focus */}
-          <div className="flex-1 flex items-center justify-center">
-            <TimerDisplay />
-          </div>
-          
-          {/* Controls - Safe at bottom */}
-          <div className="flex-shrink-0 pb-8">
-            <TimerControls />
+          {/* Main Centered Layout */}
+          <div className="h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+            
+            {/* Status and Round Info */}
+            <div className="flex-shrink-0 mb-4 sm:mb-6 lg:mb-8">
+              <StatusDisplay />
+            </div>
+            
+            {/* Circular Timer Display with Integrated Progress */}
+            <div className="flex-1 flex items-center justify-center w-full min-h-0 max-w-2xl">
+              <CircularTimerDisplay />
+            </div>
+            
+            {/* Controls - Safe at bottom */}
+            <div className="flex-shrink-0 mt-4 sm:mt-6 lg:mt-8 pb-4 sm:pb-6 lg:pb-8">
+              <TimerControls />
+            </div>
+            
           </div>
           
         </div>
-        
-      </div>
-    </TimerProvider>
+      </TimerProvider>
+    </ClientOnly>
   );
 }

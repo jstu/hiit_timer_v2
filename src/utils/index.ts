@@ -88,6 +88,9 @@ export function parseTimeInput(timeString: string): number {
   return mins * 60 + secs;
 }
 
+let idCounter = 0;
+
 export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  // Use a counter-based approach to avoid hydration issues
+  return `id_${++idCounter}_${Date.now().toString(36)}`;
 }

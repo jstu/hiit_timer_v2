@@ -2,60 +2,95 @@
 
 import { useTimer } from '@/hooks/useTimer';
 
-export function ProgressBar() {
-  const { progress, state, currentTime } = useTimer();
+export function CircularProgressBar() {
+  const { progress, state } = useTimer();
 
   const getProgressColor = () => {
     switch (state) {
-      case 'active': return 'bg-green-500';
-      case 'rest': return 'bg-orange-500'; 
-      case 'prepare': return 'bg-blue-500';
-      case 'completed': return 'bg-purple-500';
-      default: return 'bg-gray-500';
+      case 'active': return '#22c55e'; // green-500
+      case 'rest': return '#f97316';   // orange-500
+      case 'prepare': return '#3b82f6'; // blue-500
+      case 'completed': return '#a855f7'; // purple-500
+      case 'paused': return '#eab308';   // yellow-500
+      default: return '#6b7280';         // gray-500
     }
   };
 
   const getGlowColor = () => {
     switch (state) {
-      case 'active': return 'shadow-green-500/50';
-      case 'rest': return 'shadow-orange-500/50'; 
-      case 'prepare': return 'shadow-blue-500/50';
-      case 'completed': return 'shadow-purple-500/50';
-      default: return 'shadow-gray-500/50';
+      case 'active': return 'drop-shadow-[0_0_20px_rgba(34,197,94,0.6)]';
+      case 'rest': return 'drop-shadow-[0_0_20px_rgba(249,115,22,0.6)]';
+      case 'prepare': return 'drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]';
+      case 'completed': return 'drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]';
+      case 'paused': return 'drop-shadow-[0_0_20px_rgba(234,179,8,0.6)]';
+      default: return '';
     }
   };
 
-  const getStateLabel = () => {
-    switch (state) {
-      case 'active': return 'WORK';
-      case 'rest': return 'REST';
-      case 'prepare': return 'PREPARE';
-      case 'completed': return 'COMPLETE';
-      case 'paused': return 'PAUSED';
-      default: return 'READY';
-    }
-  };
+  // Circle parameters
+  const size = 400; // SVG size
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="w-full space-y-2">
-      {/* Progress Label */}
-      <div className="flex justify-between items-center text-lg font-bold">
-        <span className={`${state === 'active' ? 'text-green-400' : state === 'rest' ? 'text-orange-400' : state === 'prepare' ? 'text-blue-400' : 'text-gray-400'}`}>
-          {getStateLabel()}
-        </span>
-        <span className="text-white">
-          {Math.round(progress)}%
-        </span>
-      </div>
+    <div className="relative">
+      <svg
+        className={`transform -rotate-90 ${getGlowColor()}`}
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+      >
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(75, 85, 99, 0.3)" // gray-600/30
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          className="drop-shadow-lg"
+        />
+        
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={getProgressColor()}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="transition-all duration-1000 ease-out drop-shadow-xl"
+          style={{
+            filter: `drop-shadow(0 0 8px ${getProgressColor()}40)`
+          }}
+        />
+        
+        {/* Animated pulse ring on progress end */}
+        {progress > 95 && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius + 8}
+            stroke={getProgressColor()}
+            strokeWidth={2}
+            fill="transparent"
+            opacity={0.6}
+            className="animate-pulse"
+          />
+        )}
+      </svg>
       
-      {/* Large Progress Bar */}
-      <div className="w-full bg-gray-800 h-8 rounded-xl overflow-hidden shadow-inner">
-        <div 
-          className={`h-full transition-all duration-1000 ease-out ${getProgressColor()} ${getGlowColor()} shadow-2xl relative`}
-          style={{ width: `${progress}%` }}
-        >
-          {/* Animated shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+      {/* Progress percentage overlay */}
+      <div className="absolute inset-0 flex items-end justify-center pb-12">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-white opacity-70">
+            {Math.round(progress)}%
+          </div>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ const defaultSettings: WorkoutSettings = {
   cycles: 10,
   thirtySecondAlert: true,
   jumpAlert: true,
+  jumpIntensity: 'medium',
 };
 
 const TimerContext = createContext<TimerContextType | null>(null);
@@ -20,35 +21,118 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [currentCycle, setCurrentCycle] = useState(0);
   const [state, setState] = useState<TimerState>('idle');
   const [settings, setSettings] = useState<WorkoutSettings>(defaultSettings);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Update state ref whenever state changes
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  // Seeded random number generator for consistent jump patterns
+  const seededRandom = (seed: number) => {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+
+  // Generate deterministic jump times for a round
+  const generateJumpTimes = (roundNumber: number, activeTime: number, intensity: 'low' | 'medium' | 'high', burnAlert: boolean): number[] => {
+    const jumpTimes: number[] = [];
+    
+    // Adjust safe zones based on burn alert setting
+    const minTime = burnAlert ? 35 : 30; // Extra buffer if burn alert is enabled
+    const maxTime = activeTime - 15; // Don't jump in first 15 seconds
+    const availableTime = maxTime - minTime;
+    
+    if (availableTime <= 0) return jumpTimes;
+    
+    // Calculate jumps based on intensity setting
+    const getJumpCount = (intensity: 'low' | 'medium' | 'high', duration: number): number => {
+      const baseDuration = Math.max(60, duration); // At least 60 seconds for calculation
+      
+      switch (intensity) {
+        case 'low':
+          return Math.max(1, Math.min(2, Math.floor(baseDuration / 120))); // 1-2 jumps
+        case 'medium':
+          return Math.max(2, Math.min(4, Math.floor(baseDuration / 60)));  // 2-4 jumps  
+        case 'high':
+          return Math.max(3, Math.min(6, Math.floor(baseDuration / 40)));  // 3-6 jumps
+        default:
+          return 2;
+      }
+    };
+    
+    const targetJumps = getJumpCount(intensity, availableTime);
+    
+    // Use round number as seed for consistent results
+    let seed = roundNumber * 12345;
+    
+    // Generate jump times with minimum 5-second spacing
+    const minSpacing = 5;
+    for (let i = 0; i < targetJumps; i++) {
+      let attempts = 0;
+      let jumpTime: number;
+      
+      do {
+        seed = (seed * 9301 + 49297) % 233280; // Linear congruential generator
+        const random = seed / 233280;
+        jumpTime = Math.floor(minTime + random * availableTime);
+        attempts++;
+      } while (
+        attempts < 50 && 
+        jumpTimes.some(existing => Math.abs(existing - jumpTime) < minSpacing)
+      );
+      
+      if (attempts < 50) {
+        jumpTimes.push(jumpTime);
+      }
+    }
+    
+    return jumpTimes.sort((a, b) => b - a); // Sort descending (countdown times)
+  };
+
+  // Pre-calculate jump times for all rounds when settings change
+  useEffect(() => {
+    if (isClient && settings.jumpAlert) {
+      const newJumpTimes = new Map<number, number[]>();
+      
+      for (let round = 1; round <= settings.cycles; round++) {
+        const jumpTimes = generateJumpTimes(round, settings.activeTime, settings.jumpIntensity, settings.thirtySecondAlert);
+        newJumpTimes.set(round, jumpTimes);
+      }
+      
+      jumpTimesRef.current = newJumpTimes;
+    }
+  }, [isClient, settings.activeTime, settings.cycles, settings.jumpAlert, settings.jumpIntensity, settings.thirtySecondAlert]);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioManagerRef = useRef<AudioManager | null>(null);
   const jumpCooldownRef = useRef(0);
   const startTimeRef = useRef<number>(0);
   const stateRef = useRef<TimerState>('idle');
+  const jumpTimesRef = useRef<Map<number, number[]>>(new Map());
 
   // Initialize audio manager and load settings
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isClient) {
       audioManagerRef.current = new AudioManager();
       const savedSettings = StorageManager.loadSettings();
       if (savedSettings) {
         setSettings(savedSettings);
       }
     }
-  }, []);
+  }, [isClient]);
 
   // Save settings when changed
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isClient) {
       StorageManager.saveSettings(settings);
     }
-  }, [settings]);
+  }, [settings, isClient]);
 
   const clearTimer = () => {
     if (intervalRef.current) {
@@ -80,15 +164,12 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       audio.playSound('thirtySecond', 0.4);
     }
 
-    // Jump sound for active periods
+    // Deterministic jump sounds for active periods
     if (timerState === 'active' && settings.jumpAlert) {
-      if (jumpCooldownRef.current > 0) {
-        jumpCooldownRef.current--;
-      } else if (time <= settings.activeTime - 15 && time > 30) {
-        if (Math.random() < 0.05) { // 5% chance
-          audio.playSound('jump', 0.6);
-          jumpCooldownRef.current = 5; // 5 second cooldown
-        }
+      const jumpTimes = jumpTimesRef.current.get(round) || [];
+      
+      if (jumpTimes.includes(time)) {
+        audio.playSound('jump', 0.6);
       }
     }
 
@@ -168,7 +249,6 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
           }
           setCurrentCycle(prev => prev + 1);
           setState('active');
-          jumpCooldownRef.current = 0; // Reset jump cooldown
           return settings.activeTime;
         }
 
@@ -187,7 +267,6 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     setState('idle');
     setCurrentTime(0);
     setCurrentCycle(0);
-    jumpCooldownRef.current = 0;
   };
 
   const updateSettings = (newSettings: Partial<WorkoutSettings>) => {

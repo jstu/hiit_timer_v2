@@ -6,6 +6,7 @@ export interface WorkoutSettings {
   cycles: number;
   thirtySecondAlert: boolean;
   jumpAlert: boolean;
+  jumpIntensity: 'low' | 'medium' | 'high'; // low=1-2, medium=2-4, high=3-6 jumps per round
 }
 
 export interface TimerContextType {

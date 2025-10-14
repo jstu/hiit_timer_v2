@@ -1,15 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTimer } from '@/hooks/useTimer';
 
 export function WorkoutSettings() {
   const { settings, updateSettings, state } = useTimer();
   const [isOpen, setIsOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   
   // Local input states to avoid parsing on every keystroke
   const [activeTimeInput, setActiveTimeInput] = useState('');
   const [restTimeInput, setRestTimeInput] = useState('');
+  
+  // Ref for the modal content to detect outside clicks
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Ensure we're on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -75,6 +84,34 @@ export function WorkoutSettings() {
     }
   };
 
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen]);
+
+  // Handle click outside modal to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
   const isDisabled = state !== 'idle' && state !== 'completed';
 
   return (
@@ -95,8 +132,11 @@ export function WorkoutSettings() {
 
       {/* Settings Overlay Panel */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gray-900 border border-gray-600 rounded-2xl shadow-2xl p-6 space-y-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+          <div 
+            ref={modalRef}
+            className="w-full max-w-md bg-gray-900/95 backdrop-blur-sm border border-gray-600 rounded-2xl shadow-2xl p-6 space-y-6 relative z-10"
+          >
             
             {/* Close Button */}
             <button
@@ -185,7 +225,96 @@ export function WorkoutSettings() {
               />
               <span className="text-gray-200 text-lg">Jump Sound Effects</span>
             </label>
+
+            {settings.jumpAlert && (
+              <div className="ml-8 mt-2">
+                <label className="block text-md font-bold text-gray-300 mb-2">
+                  Jump Intensity
+                </label>
+                <select
+                  value={settings.jumpIntensity}
+                  onChange={(e) => updateSettings({ jumpIntensity: e.target.value as 'low' | 'medium' | 'high' })}
+                  disabled={isDisabled}
+                  className="w-full px-3 py-2 border-2 border-red-600 bg-gray-800 text-white rounded-lg disabled:opacity-50"
+                >
+                  <option value="low">Low (1-2 jumps per round)</option>
+                  <option value="medium">Medium (2-4 jumps per round)</option>
+                  <option value="high">High (3-6 jumps per round)</option>
+                </select>
+              </div>
+            )}
           </div>
+
+          {/* Jump Times Preview (for debugging/verification) */}
+          {isClient && settings.jumpAlert && (
+            <div className="border-t border-gray-600 pt-4">
+              <h4 className="text-md font-bold text-gray-300 mb-2">Jump Pattern Preview</h4>
+              <div className="text-sm text-gray-400 max-h-32 overflow-y-auto">
+                <p className="mb-1">
+                  Each round will have consistent jumps
+                  {settings.thirtySecondAlert ? ' (avoiding burn alert zone)' : ''}:
+                </p>
+                {[1, 2, 3].map(round => {
+                  // Simulate the same jump generation logic
+                  const generatePreview = (roundNum: number): number[] => {
+                    const jumpTimes: number[] = [];
+                    const minTime = settings.thirtySecondAlert ? 35 : 30; // Match the logic in useTimer
+                    const maxTime = settings.activeTime - 15;
+                    const availableTime = maxTime - minTime;
+                    
+                    if (availableTime <= 0) return jumpTimes;
+                    
+                    // Use the same intensity calculation as in useTimer
+                    const getJumpCount = (intensity: 'low' | 'medium' | 'high', duration: number): number => {
+                      const baseDuration = Math.max(60, duration);
+                      
+                      switch (intensity) {
+                        case 'low':
+                          return Math.max(1, Math.min(2, Math.floor(baseDuration / 120)));
+                        case 'medium':
+                          return Math.max(2, Math.min(4, Math.floor(baseDuration / 60)));
+                        case 'high':
+                          return Math.max(3, Math.min(6, Math.floor(baseDuration / 40)));
+                        default:
+                          return 2;
+                      }
+                    };
+                    
+                    const targetJumps = getJumpCount(settings.jumpIntensity, availableTime);
+                    
+                    let seed = roundNum * 12345;
+                    const minSpacing = 5;
+                    
+                    for (let i = 0; i < targetJumps; i++) {
+                      let attempts = 0;
+                      let jumpTime: number;
+                      
+                      do {
+                        seed = (seed * 9301 + 49297) % 233280;
+                        const random = seed / 233280;
+                        jumpTime = Math.floor(minTime + random * availableTime);
+                        attempts++;
+                      } while (
+                        attempts < 50 && 
+                        jumpTimes.some(existing => Math.abs(existing - jumpTime) < minSpacing)
+                      );
+                      
+                      if (attempts < 50) jumpTimes.push(jumpTime);
+                    }
+                    
+                    return jumpTimes.sort((a, b) => a - b);
+                  };
+
+                  const jumpTimes = generatePreview(round);
+                  return (
+                    <div key={round} className="mb-1">
+                      <span className="text-gray-300">Round {round}:</span> {jumpTimes.length} jumps
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           
           </div>
         </div>
