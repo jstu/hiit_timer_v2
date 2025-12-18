@@ -22,6 +22,14 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<TimerState>('idle');
   const [settings, setSettings] = useState<WorkoutSettings>(defaultSettings);
   const [isClient, setIsClient] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // Refs - declare these first before any useEffects that use them
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioManagerRef = useRef<AudioManager | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const stateRef = useRef<TimerState>('idle');
+  const jumpTimesRef = useRef<Map<number, number[]>>(new Map());
 
   // Ensure we're on the client side
   useEffect(() => {
@@ -43,12 +51,16 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
   const generateJumpTimes = (roundNumber: number, activeTime: number, intensity: 'low' | 'medium' | 'high', burnAlert: boolean): number[] => {
     const jumpTimes: number[] = [];
     
-    // Adjust safe zones based on burn alert setting
-    const minTime = burnAlert ? 35 : 30; // Extra buffer if burn alert is enabled
-    const maxTime = activeTime - 15; // Don't jump in first 15 seconds
-    const availableTime = maxTime - minTime;
+    // Define time range for jumps (countdown format - higher numbers = earlier in round)
+    const maxTime = activeTime - 15; // Start after 15 seconds into the round
+    const minTime = burnAlert ? 35 : 30; // End before burn alert zone
     
-    if (availableTime <= 0) return jumpTimes;
+    // Ensure we have a valid time window
+    if (maxTime <= minTime) {
+      return jumpTimes;
+    }
+    
+    const availableTime = maxTime - minTime;
     
     // Calculate jumps based on intensity setting
     const getJumpCount = (intensity: 'low' | 'medium' | 'high', duration: number): number => {
@@ -71,33 +83,32 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
     // Use round number as seed for consistent results
     let seed = roundNumber * 12345;
     
-    // Generate jump times with minimum 5-second spacing
-    const minSpacing = 5;
+    // Divide the time range into segments and place jumps evenly for better distribution
+    const segments = targetJumps + 1;
+    const segmentSize = availableTime / segments;
+    
     for (let i = 0; i < targetJumps; i++) {
-      let attempts = 0;
-      let jumpTime: number;
+      // Place jump in the middle of each segment with some randomness
+      const segmentStart = minTime + (i * segmentSize);
+      const segmentEnd = minTime + ((i + 1) * segmentSize);
+      const segmentMiddle = (segmentStart + segmentEnd) / 2;
       
-      do {
-        seed = (seed * 9301 + 49297) % 233280; // Linear congruential generator
-        const random = seed / 233280;
-        jumpTime = Math.floor(minTime + random * availableTime);
-        attempts++;
-      } while (
-        attempts < 50 && 
-        jumpTimes.some(existing => Math.abs(existing - jumpTime) < minSpacing)
-      );
+      // Add some randomness around the middle (±25% of segment size)
+      seed = (seed * 9301 + 49297) % 233280;
+      const random = (seed / 233280 - 0.5) * 0.5; // -0.25 to +0.25
+      const jumpTime = Math.floor(segmentMiddle + (random * segmentSize));
       
-      if (attempts < 50) {
-        jumpTimes.push(jumpTime);
-      }
+      // Ensure it stays within bounds
+      const clampedJumpTime = Math.max(minTime, Math.min(maxTime, jumpTime));
+      jumpTimes.push(clampedJumpTime);
     }
     
     return jumpTimes.sort((a, b) => b - a); // Sort descending (countdown times)
   };
 
-  // Pre-calculate jump times for all rounds when settings change
+  // Pre-calculate jump times for all rounds when settings change (but not during active workout)
   useEffect(() => {
-    if (isClient && settings.jumpAlert) {
+    if (isClient && settingsLoaded && settings.jumpAlert && (state === 'idle' || state === 'completed')) {
       const newJumpTimes = new Map<number, number[]>();
       
       for (let round = 1; round <= settings.cycles; round++) {
@@ -107,14 +118,8 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       
       jumpTimesRef.current = newJumpTimes;
     }
-  }, [isClient, settings.activeTime, settings.cycles, settings.jumpAlert, settings.jumpIntensity, settings.thirtySecondAlert]);
+  }, [isClient, settingsLoaded, settings.activeTime, settings.cycles, settings.jumpAlert, settings.jumpIntensity, settings.thirtySecondAlert, state]);
   
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioManagerRef = useRef<AudioManager | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const stateRef = useRef<TimerState>('idle');
-  const jumpTimesRef = useRef<Map<number, number[]>>(new Map());
-
   // Initialize audio manager and load settings
   useEffect(() => {
     if (isClient) {
@@ -123,6 +128,7 @@ export function TimerProvider({ children }: { children: React.ReactNode }) {
       if (savedSettings) {
         setSettings(savedSettings);
       }
+      setSettingsLoaded(true); // Mark settings as loaded
     }
   }, [isClient]);
 

@@ -57,7 +57,7 @@ export function CircularTimerDisplay() {
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className={`relative flex items-center justify-center w-full h-full max-w-md max-h-md aspect-square ${isBurnZone ? 'animate-intense-pulse' : ''}`}>
+    <div className={`relative flex items-center justify-center w-full h-full aspect-square ${isBurnZone ? 'animate-intense-pulse' : ''}`}>
       
       {/* Burn Zone Fire Effect Background */}
       {isBurnZone && (
@@ -115,9 +115,9 @@ export function CircularTimerDisplay() {
         )}
       </svg>
       
-      {/* Timer Display in Center - Absolute positioned */}
+      {/* Timer Display in Center - Massive text for TV viewing */}
       <div className={`absolute inset-0 flex items-center justify-center ${isBurnZone ? 'animate-screen-shake' : ''}`}>
-        <div className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-mono font-bold ${getDisplayColor()} ${getGlowEffect()}`}>
+        <div className={`text-8xl sm:text-9xl md:text-[8rem] lg:text-[10rem] xl:text-[12rem] 2xl:text-[14rem] font-mono font-bold ${getDisplayColor()} ${getGlowEffect()}`}>
           {formatTime(currentTime)}
         </div>
       </div>

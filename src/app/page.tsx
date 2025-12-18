@@ -25,22 +25,55 @@ export default function Home() {
             <WorkoutSettings />
           </div>
           
-          {/* Main Centered Layout */}
-          <div className="h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+          {/* TV-Optimized Layout: Massive Central Timer + Floating Controls */}
+          <div className="h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative">
             
-            {/* Status and Round Info */}
-            <div className="flex-shrink-0 mb-4 sm:mb-6 lg:mb-8">
-              <StatusDisplay />
+            {/* Mobile/Tablet: Vertical Layout */}
+            <div className="lg:hidden flex flex-col items-center justify-center gap-6 w-full max-w-2xl">
+              
+              {/* Status and Round Info */}
+              <div className="flex-shrink-0">
+                <StatusDisplay />
+              </div>
+              
+              {/* Circular Timer Display */}
+              <div className="flex-1 flex items-center justify-center w-full min-h-0">
+                <div className="w-full h-full max-w-md max-h-md aspect-square">
+                  <CircularTimerDisplay />
+                </div>
+              </div>
+              
+              {/* Controls */}
+              <div className="flex-shrink-0">
+                <TimerControls />
+              </div>
+              
             </div>
             
-            {/* Circular Timer Display with Integrated Progress */}
-            <div className="flex-1 flex items-center justify-center w-full min-h-0 max-w-2xl">
-              <CircularTimerDisplay />
-            </div>
-            
-            {/* Controls - Safe at bottom */}
-            <div className="flex-shrink-0 mt-4 sm:mt-6 lg:mt-8 pb-4 sm:pb-6 lg:pb-8">
-              <TimerControls />
+            {/* Desktop/TV: Massive Central Timer with Floating Elements */}
+            <div className="hidden lg:flex items-center justify-center w-full h-full">
+              
+              {/* Massive Central Timer - Takes Full Available Space */}
+              <div className="flex items-center justify-center w-full h-full max-w-[90vw] max-h-[90vh]">
+                <div className="w-full h-full aspect-square">
+                  <CircularTimerDisplay />
+                </div>
+              </div>
+              
+              {/* Floating Status Display - Top Right */}
+              <div className="absolute top-8 right-8 z-10">
+                <div className="transform scale-75 origin-top-right">
+                  <StatusDisplay />
+                </div>
+              </div>
+              
+              {/* Floating Controls - Bottom Right */}
+              <div className="absolute bottom-8 right-8 z-10">
+                <div className="transform scale-75 origin-bottom-right">
+                  <TimerControls />
+                </div>
+              </div>
+              
             </div>
             
           </div>
